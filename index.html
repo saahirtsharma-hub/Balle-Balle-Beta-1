@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Dancing Stick Person - Punjabi & Hindi Music</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #e91e63 100%);
+            font-family: Arial, sans-serif;
+            perspective: 1000px;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 32px;
+        }
+
+        .music-title {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .stage {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            perspective: 1200px;
+        }
+
+        .canvas-container {
+            width: 400px;
+            height: 500px;
+            margin: 0 auto 30px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #ff6b35;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: white;
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.active {
+            background: #ff6b35;
+            color: white;
+        }
+
+        .music-info {
+            color: white;
+            margin-top: 20px;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+
+        .beat-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            margin-left: 10px;
+            animation: beatPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes beatPulse {
+            0%, 100% {
+                background: rgba(255, 255, 255, 0.5);
+                transform: scale(1);
+            }
+            50% {
+                background: #ff6b35;
+                transform: scale(1.5);
+            }
+        }
+
+        .volume-control {
+            color: white;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .volume-control input[type="range"] {
+            width: 150px;
+            cursor: pointer;
+        }
+
+        .status-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .dhol-icon {
+            font-size: 40px;
+            animation: dhol-bounce 0.6s ease-in-out infinite;
+            display: inline-block;
+            margin: 0 10px;
+        }
+
+        @keyframes dhol-bounce {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(5deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥁 डांसिंग स्टिक परसन 🥁</h1>
+        <div class="music-title">
+            <span class="dhol-icon">🥁</span>
+            Punjabi & Hindi Music
+            <span class="dhol-icon">🥁</span>
+        </div>
+        
+        <div class="stage">
+            <div class="canvas-container">
+                <canvas id="danceCanvas"></canvas>
+            </div>
+
+            <div class="music-info">
+                ♪ ਭਾਂਗੜਾ ਬੀਟ - Dhol Rhythm Playing
+                <span class="beat-indicator"></span>
+            </div>
+
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" id="volumeControl" min="0" max="100" value="50">
+                <span id="volumeDisplay">50%</span>
+            </div>
+
+            <div class="controls">
+                <button onclick="changeBeat('punjabi')" id="punjabiBtn" class="active">🎶 Bhangra</button>
+                <button onclick="changeBeat('hindi')" id="hindiBtn">🎵 Bollywood</button>
+                <button onclick="changeBeat('garba')" id="garbaBtn">💃 Garba</button>
+            </div>
+
+            <div class="status-text">
+                🎧 Dhol beats playing • Click to unmute browser audio
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ===== AUDIO CONTEXT & INDIAN MUSIC GENERATION =====
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let masterGain = audioContext.createGain();
+        masterGain.connect(audioContext.destination);
+        masterGain.gain.value = 0.3;
+
+        let currentBeat = 'punjabi';
+        let beatTempo = 120; // BPM
+
+        // Indian Raag notes (Raga Bhairav)
+        const indianNotes = {
+            punjabi: [262, 294, 330, 349, 392, 440, 494], // C, D, E, F, G, A, B (Bhangra style)
+            hindi: [262, 293, 330, 349, 392, 440, 493],   // Hindustani raga notes
+            garba: [262, 296, 330, 349, 392, 440, 494]    // Gujarati folk notes
+        };
+
+        function playIndianMusic() {
+            const now = audioContext.currentTime;
+            const beatDuration = 60 / beatTempo;
+
+            // Main melody - Indian classical/folk
+            const melody = () => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(masterGain);
+
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.12, now + 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + beatDuration * 0.9);
+
+                // Indian raga pattern
+                const notes = indianNotes[currentBeat];
+                let noteIndex = Math.floor((audioContext.currentTime * 5) % notes.length);
+                osc.frequency.value = notes[noteIndex];
+
+                osc.start(now);
+                osc.stop(now + beatDuration * 0.9);
+            };
+
+            // Dhol drum bass (deep, booming)
+            const dhol = () => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+
+                osc.type = 'sine';
+                filter.type = 'lowpass';
+                filter.frequency.value = 150;
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.02, now + beatDuration * 0.5);
+
+                osc.frequency.value = 80; // Deep dhol sound
+                osc.start(now);
+                osc.stop(now + beatDuration * 0.5);
+            };
+
+            // Tabla rhythm (high pitched drum hits)
+            const tabla = () => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+
+                osc.type = 'triangle';
+                filter.type = 'highpass';
+                filter.frequency.value = 2000;
+
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.frequency.value = 300;
+                osc.start(now);
+                osc.stop(now + 0.15);
+            };
+
+            // Sitar/Sarangi string slide
+            const stringSlide = () => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+
+                osc.type = 'sawtooth';
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.005, now + 0.2);
+
+                const notes = indianNotes[currentBeat];
+                const baseNote = notes[Math.floor((audioContext.currentTime * 2) % notes.length)];
+                osc.frequency.setValueAtTime(baseNote, now);
+                osc.frequency.exponentialRampToValueAtTime(baseNote * 1.2, now + 0.15);
+
+                osc.start(now);
+                osc.stop(now + 0.2);
+            };
+
+            // Bhangra/Hindi rhythm pattern
+            const beatPattern = Math.floor((audioContext.currentTime * 2) % 8);
+            
+            dhol();
+            
+            if (beatPattern % 2 === 0) {
+                tabla();
+            }
+            
+            if (beatPattern % 3 === 0) {
+                stringSlide();
+            }
+            
+            melody();
+
+            // Schedule next beat
+            setTimeout(playIndianMusic, (beatDuration * 1000));
+        }
+
+        // Start music
+        playIndianMusic();
+
+        // Volume control
+        document.getElementById('volumeControl').addEventListener('change', function(e) {
+            masterGain.gain.value = e.target.value / 100 * 0.5;
+            document.getElementById('volumeDisplay').textContent = e.target.value + '%';
+        });
+
+        // ===== 3D STICK PERSON WITH THREE.JS =====
+        const canvas = document.getElementById('danceCanvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        renderer.setClearColor(0x1a1a2e, 0.1);
+
+        camera.position.z = 5;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        scene.add(directionalLight);
+
+        // Create 3D Stick Person
+        class StickPerson {
+            constructor() {
+                this.group = new THREE.Group();
+                this.group.position.z = 0;
+
+                // Head
+                const headGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+                const headMaterial = new THREE.MeshPhongMaterial({ color: 0xffdbac });
+                this.head = new THREE.Mesh(headGeometry, headMaterial);
+                this.head.position.y = 3.5;
+                this.group.add(this.head);
+
+                // Eyes
+                const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.15, 3.7, 0.4);
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.15, 3.7, 0.4);
+                this.group.add(leftEye);
+                this.group.add(rightEye);
+
+                // Body (cylinder) - Indian red/saffron color
+                const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 8);
+                const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xff6b35 });
+                this.body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                this.body.position.y = 2;
+                this.group.add(this.body);
+
+                // Create limbs
+                this.createLimbs();
+
+                scene.add(this.group);
+            }
+
+            createLimbs() {
+                const limbMaterial = new THREE.MeshPhongMaterial({ color: 0xffd700 });
+                const limbGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.2, 8);
+
+                // Left arm
+                this.leftArm = new THREE.Mesh(limbGeometry, limbMaterial);
+                this.leftArm.rotation.z = Math.PI / 2;
+                this.leftArm.position.set(-0.7, 2.5, 0);
+                this.group.add(this.leftArm);
+
+                // Right arm
+                this.rightArm = new THREE.Mesh(limbGeometry, limbMaterial);
+                this.rightArm.rotation.z = Math.PI / 2;
+                this.rightArm.position.set(0.7, 2.5, 0);
+                this.group.add(this.rightArm);
+
+                // Left leg
+                this.leftLeg = new THREE.Mesh(limbGeometry, limbMaterial);
+                this.leftLeg.position.set(-0.35, 0.5, 0);
+                this.group.add(this.leftLeg);
+
+                // Right leg
+                this.rightLeg = new THREE.Mesh(limbGeometry, limbMaterial);
+                this.rightLeg.position.set(0.35, 0.5, 0);
+                this.group.add(this.rightLeg);
+            }
+
+            dance(time) {
+                // Bhangra-style vigorous dancing
+                
+                // Head - fast bobbing and swaying
+                this.head.position.y = 3.5 + Math.sin(time * 8) * 0.35;
+                this.head.rotation.z = Math.sin(time * 8) * 0.25;
+                this.head.rotation.x = Math.sin(time * 5) * 0.15;
+
+                // Body - strong rhythmic twisting
+                this.body.rotation.z = Math.sin(time * 8) * 0.35;
+                this.body.rotation.x = Math.sin(time * 4) * 0.15;
+
+                // Left arm - energetic swinging
+                this.leftArm.rotation.x = Math.sin(time * 8 + Math.PI/2) * 1.5;
+                this.leftArm.rotation.y = Math.cos(time * 8) * 0.8;
+                this.leftArm.rotation.z = Math.PI / 2 + Math.sin(time * 8) * 0.4;
+
+                // Right arm - opposite rhythm
+                this.rightArm.rotation.x = Math.cos(time * 8 + Math.PI/2) * 1.5;
+                this.rightArm.rotation.y = Math.sin(time * 8) * 0.8;
+                this.rightArm.rotation.z = Math.PI / 2 + Math.cos(time * 8) * 0.4;
+
+                // Left leg - dynamic kicking
+                this.leftLeg.rotation.x = Math.sin(time * 8 + Math.PI/3) * 1.0;
+                this.leftLeg.rotation.z = Math.sin(time * 8) * 0.5;
+
+                // Right leg - syncopated
+                this.rightLeg.rotation.x = Math.cos(time * 8 + Math.PI/3) * 1.0;
+                this.rightLeg.rotation.z = Math.cos(time * 8) * 0.5;
+
+                // Overall hip movement
+                this.group.rotation.y = Math.sin(time * 4) * 0.4;
+                this.group.position.y = Math.sin(time * 8) * 0.2;
+            }
+        }
+
+        const dancer = new StickPerson();
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = audioContext.currentTime * (beatTempo / 60);
+            dancer.dance(time);
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Beat change functions
+        function changeBeat(beat) {
+            currentBeat = beat;
+            
+            document.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(beat + 'Btn').classList.add('active');
+
+            switch(beat) {
+                case 'punjabi':
+                    beatTempo = 120;
+                    document.querySelector('.music-title').textContent = '🥁 Punjabi & Hindi Music 🥁';
+                    break;
+                case 'hindi':
+                    beatTempo = 110;
+                    document.querySelector('.music-title').textContent = '🎬 Bollywood Masala 🎬';
+                    break;
+                case 'garba':
+                    beatTempo = 130;
+                    document.querySelector('.music-title').textContent = '💃 Garba & Dandiya 💃';
+                    break;
+            }
+        }
+
+        // Responsive canvas
+        window.addEventListener('resize', () => {
+            const width = canvas.parentElement.clientWidth;
+            const height = canvas.parentElement.clientHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+
+        // Enable audio on user interaction
+        document.addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log('Audio context resumed');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
